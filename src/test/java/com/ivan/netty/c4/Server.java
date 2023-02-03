@@ -24,7 +24,7 @@ public class Server {
         ByteBuffer buffer = ByteBuffer.allocate(16);
         // 1. 创建服务器
         ServerSocketChannel ssc = ServerSocketChannel.open();
-
+        ssc.configureBlocking(false); // 非阻塞模式
         // 2. 绑定监听端口
         ssc.bind(new InetSocketAddress(8085));
 
@@ -32,18 +32,21 @@ public class Server {
         List<SocketChannel> channels = new ArrayList<>();
         while (true) {
             // 4. accept建立与客户端连接
-            log.debug("connecting...");
             SocketChannel sc = ssc.accept();
-            log.debug("connected... {}", sc);
-            channels.add(sc);
+            if (sc != null) {
+                log.debug("connected... {}", sc);
+                sc.configureBlocking(false); // 非阻塞模式
+                channels.add(sc);
+            }
             for (SocketChannel channel : channels) {
                 // 5. 接收客户端数据
-                log.debug("before reading..., {}", channel);
-                channel.read(buffer);
-                buffer.flip();
-                debugRead(buffer);
-                buffer.clear();
-                log.debug("after reading..., {}", channel);
+                int read = channel.read(buffer);
+                if (read > 0) {
+                    buffer.flip();
+                    debugRead(buffer);
+                    buffer.clear();
+                    log.debug("after reading..., {}", channel);
+                }
             }
         }
     }
